@@ -4,13 +4,18 @@ import models.Port;
 
 import java.util.List;
 
+import static models.Port.TCP;
+import static models.Port.UDP;
+
 public abstract class PortScannerAdapter implements PortScanner
 {
-    protected String host;
-    protected int startPort;
-    protected int finalPort;
-    protected int timeout;
-    protected boolean logMode;
+    protected String host = "localhost";
+    protected int startPort = 1;
+    protected int finalPort = 65535;
+    protected int timeout = 200;
+    protected boolean logMode = false;
+
+    protected int options = TCP;
 
     public PortScannerAdapter() {
 
@@ -28,6 +33,17 @@ public abstract class PortScannerAdapter implements PortScanner
         this.startPort = startPort;
         this.finalPort = finalPort;
         this.timeout = timeout;
+    }
+
+    public PortScannerAdapter setOptions(int type)
+    {
+        this.options = type;
+        return this;
+    }
+
+    public int getOptions()
+    {
+        return this.options;
     }
 
     public PortScanner setLogMode(boolean bool)

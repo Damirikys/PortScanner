@@ -6,11 +6,12 @@ import prototype.PortScannerAdapter;
 import prototype.Protocol;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import static models.Port.TCP;
+import static models.Port.UDP;
 
 public class ConsistentPortScanner extends PortScannerAdapter
 {
@@ -19,32 +20,76 @@ public class ConsistentPortScanner extends PortScannerAdapter
     public List<Port> scan()
     {
         if (logMode) System.out.println("Process... ");
-        for (int port = startPort; port <= finalPort ; port++) {
-            try {
-                InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(host), port);
-                Socket clientSocket = new Socket();
-                clientSocket.connect(isa,timeout);
-                if (logMode) System.out.println(port +" is opened");
-                clientSocket.close();
-                portIsOpen(port);
-            } catch (IOException ioe) {
-                if (logMode) System.out.println(port + " ...");
-            }
-        }
-
-        try {
-            Thread.sleep(timeout * 10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        for (int port = startPort; port <= finalPort ; port++)
+            portIdentify(port);
 
         return openedPorts;
+    }
+
+    protected void portIdentify(int port)
+    {
+        if (options == 1)
+            checkTCP(port);
+        else if (options == 2)
+            checkUDP(port);
+        else if (options == 3)
+        {
+            checkTCP(port);
+            checkUDP(port);
+        }
+    }
+
+    protected void checkTCP(int port)
+    {
+        try {
+            InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(host), port);
+            Socket clientSocket = new Socket();
+            clientSocket.connect(isa,timeout);
+            if (logMode) System.out.println("TCP | " + port +" is open");
+            clientSocket.close();
+            portIsOpen(port);
+        } catch (IOException ioe) {
+            if (logMode) System.out.println("TCP | " + port + " ...");
+        }
+    }
+
+    protected void checkUDP(int port)
+    {
+        try {
+            DatagramPacket packet = new DatagramPacket(
+                    new byte[128], 10, InetAddress.getByName(host), port);
+            DatagramSocket socket = new DatagramSocket();
+            socket.setSoTimeout(timeout);
+            socket.connect(InetAddress.getByName(host), port);
+            socket.send(packet);
+            try {
+                socket.receive(packet);
+                String recieved = new String(packet.getData(), 0);
+                System.out.println("Received: " + recieved);
+                if (logMode) System.out.println("UDP | " + port + " is open");
+                openedPorts.add(new Port(port).setOption(UDP));
+            } catch (PortUnreachableException e){
+                if (logMode) System.out.println("UDP | " + port + " is unreachable");
+            } catch (SocketTimeoutException e){
+                if (logMode) System.out.println("UDP | " + port + " is open|filtered");
+            } finally {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            if (logMode) System.out.println("UDP | " + port + " is unreachable");
+        }
     }
 
     protected void portIsOpen(int port) {
         try {
             new PortListener(InetAddress.getByName(getHost()), port, timeout).send(new byte[10], response ->
-                    openedPorts.add(new Port(port).setProtocol(determineProtocol(response))));
+                    openedPorts.add(
+                            new Port(port)
+                                    .setProtocol(determineProtocol(response))
+                                    .setOption(TCP)
+                    )
+            );
         } catch (IOException e) {
             e.printStackTrace();
         }

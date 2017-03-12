@@ -9,13 +9,15 @@ public class Main
     {
         long startTime = System.currentTimeMillis();
 
-        List<Port> openPorts = new ParallelPortScanner()
-                .setHost("193.109.246.6")
-                .setStartPort(1)
-                .setFinalPort(500)
-                .setTimeout(200)
+        List<Port> openPorts = new ParallelPortScanner() // new ConsistentPortScanner()
+                .setHost("46.101.165.166")
+                .setOptions(Port.TCP)
+                //.setStartPort(60)
+                //.setFinalPort(400)
+                //.setTimeout(50)
                 .setLogMode(true)
                 .scan();
+
 
         System.out.println("\nOpened ports:");
         openPorts.forEach(port -> System.out.println(port.toString()));
