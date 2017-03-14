@@ -1,14 +1,13 @@
 package implementations;
 
 import models.Port;
-import models.PortListener;
+import network.TCPPacketSender;
+import network.UDPPacketProvider;
 import prototype.PortScannerAdapter;
-import prototype.Protocol;
+import models.TCPStack;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
-import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,79 +30,93 @@ public class ConsistentPortScanner extends PortScannerAdapter
     protected void portIdentify(int port)
     {
         if (options == 1)
-            checkTCP(port);
+            provideTCP(port);
         else if (options == 2)
-            checkUDP(port);
+            provideUDP(port);
         else if (options == 3)
         {
+            provideTCP(port);
+            provideUDP(port);
+        }
+    }
+
+    protected void provideTCP(int port)
+    {
+        try {
             checkTCP(port);
-            checkUDP(port);
-        }
-    }
-
-    protected void checkTCP(int port)
-    {
-        try {
-            InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(host), port);
-            Socket clientSocket = new Socket();
-            clientSocket.connect(isa,timeout);
             if (logMode) System.out.println("TCP | " + port +" is open");
-            clientSocket.close();
-            portIsOpen(port);
-        } catch (IOException ioe) {
-            if (logMode) System.out.println("TCP | " + port + " ...");
-        }
-    }
-
-    protected void checkUDP(int port)
-    {
-        byte [] bytes = new byte[2400];
-
-        try {
-            DatagramSocket socket = new DatagramSocket();
-            DatagramPacket packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(host), port);
-            socket.setSoTimeout(timeout);
-            socket.connect(InetAddress.getByName(host), port);
-            socket.send(packet);
-
-            packet = new DatagramPacket(bytes, bytes.length);
-            socket.receive(packet);
-
-            //socket.receive(received);
-            socket.close();
-            if (logMode) System.out.println("UDP | " + port + " is open");
-            openedPorts.add(new Port(port).setOption(UDP));
-        } catch (PortUnreachableException e) {
-            if (logMode) System.out.println("UDP | " + port + " is closed");
-        } catch (SocketTimeoutException e) {
-            if (logMode) System.out.println("UDP | " + port + " is open|filtered");
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
-    }
-
-    protected void portIsOpen(int port) {
-        try {
-            new PortListener(InetAddress.getByName(getHost()), port, timeout).send(new byte[10], response ->
-                    openedPorts.add(
-                            new Port(port)
-                                    .setProtocol(determineProtocol(response))
-                                    .setOption(TCP)
-                    )
+            addPort(
+                    new Port(port)
+                        .setType(TCP)
+                        .setService(
+                                determineTCPService(
+                                        new TCPPacketSender(inetAddress, port, timeout)
+                                                .send(new byte[128])
+                                )
+                        )
             );
         } catch (IOException e) {
-            e.printStackTrace();
+            if (logMode) System.out.println("TCP | " + port +" ...");
         }
     }
 
-    private Protocol determineProtocol(String response)
+    protected void provideUDP(int port)
+    {
+        UDPPacketProvider.getData((bytes, service) -> {
+            try {
+                checkUDP(port, bytes);
+                if (logMode) System.out.println("UDP | " + port +" is open");
+                addPort(new Port(port).setService(service).setType(UDP));
+                return true;
+            } catch (IOException e) {
+                if (logMode) System.out.println("UDP | " + port +" ... ("+ service +")");
+                return false;
+            }
+        });
+    }
+
+    protected void checkTCP(int port) throws IOException
+    {
+        InetSocketAddress isa = new InetSocketAddress(inetAddress, port);
+        Socket clientSocket = new Socket();
+        clientSocket.connect(isa,timeout);
+        clientSocket.close();
+    }
+
+    protected void checkUDP(int port, byte[] bytes) throws IOException
+    {
+        DatagramSocket socket = new DatagramSocket();
+        DatagramPacket packet = new DatagramPacket(
+                bytes, bytes.length, inetAddress, port);
+        DatagramPacket received = new DatagramPacket(bytes, bytes.length);
+        socket.setSoTimeout(timeout);
+        socket.connect(inetAddress, port);
+
+        socket.send(packet);
+        socket.receive(received);
+        socket.close();
+    }
+
+    protected void addPort(Port port)
+    {
+        openedPorts.add(port);
+    }
+
+    private String determineTCPService(String response)
     {
         response = response.toLowerCase();
-        System.out.println(response);
-        for (Protocol protocol: Protocol.values())
-            if (response.contains(protocol.name()))
-                return protocol;
+        for (TCPStack type : TCPStack.values())
+        {
+            if (response.contains(type.name()))
+                return type.name();
 
-        return Protocol.unknown;
+            String[] stopWords = TCPStack.wordMap.get(type);
+            if (stopWords == null) continue;
+            for (String stopWord : stopWords)
+                if (response.contains(stopWord))
+                    return type.name();
+        }
+
+        return "Unknown";
     }
 }

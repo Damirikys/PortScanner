@@ -2,37 +2,40 @@ package prototype;
 
 import models.Port;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
-
-import static models.Port.TCP;
-import static models.Port.UDP;
 
 public abstract class PortScannerAdapter implements PortScanner
 {
+    protected InetAddress inetAddress;
     protected String host = "localhost";
     protected int startPort = 1;
     protected int finalPort = 65535;
     protected int timeout = 200;
     protected boolean logMode = false;
 
-    protected int options = TCP;
+    protected int options = Port.TCP | Port.UDP;
 
     public PortScannerAdapter() {
 
     }
 
-    public PortScannerAdapter(String host, int port) {
+    public PortScannerAdapter(String host, int port) throws UnknownHostException {
         this.logMode = false;
         this.host = host;
         this.startPort = port;
         this.finalPort = port;
+        this.inetAddress = InetAddress.getByName(host);
     }
 
-    public PortScannerAdapter(String host, int startPort, int finalPort, int timeout){
+    public PortScannerAdapter(String host, int startPort, int finalPort, int timeout) throws UnknownHostException {
         this.logMode = false;
+        this.host = host;
         this.startPort = startPort;
         this.finalPort = finalPort;
         this.timeout = timeout;
+        this.inetAddress = InetAddress.getByName(host);
     }
 
     public PortScannerAdapter setOptions(int type)
@@ -60,8 +63,9 @@ public abstract class PortScannerAdapter implements PortScanner
         return host;
     }
 
-    public PortScannerAdapter setHost(String host) {
+    public PortScannerAdapter setHost(String host) throws UnknownHostException {
         this.host = host;
+        this.inetAddress = InetAddress.getByName(host);
         return this;
     }
 
@@ -93,6 +97,4 @@ public abstract class PortScannerAdapter implements PortScanner
     }
 
     public abstract List<Port> scan();
-
-    protected abstract void portIsOpen(int port);
 }

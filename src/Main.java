@@ -1,29 +1,27 @@
-import implementations.ConsistentPortScanner;
 import implementations.ParallelPortScanner;
 import models.Port;
 
+import java.net.UnknownHostException;
 import java.util.List;
 
-public class Main
-{
-    public static void main(String[] args) throws InterruptedException
-    {
+public class Main {
+    public static void main(String[] args) throws UnknownHostException {
         long startTime = System.currentTimeMillis();
 
-        List<Port> openPorts = new ConsistentPortScanner() // new ConsistentPortScanner()
-                .setHost("88.147.254.232")
-                .setOptions(Port.UDP)
-                .setStartPort(123)
-                .setFinalPort(123)
-                .setTimeout(5000)
+        List<Port> openPorts = new ParallelPortScanner() // new ConsistentPortScanner()
+                .setHost("ntp2.stratum1.ru")
+                .setOptions(Port.TCP | Port.UDP)
+                .setStartPort(50)
+                .setFinalPort(130)
+                .setTimeout(500)
                 .setLogMode(true)
                 .scan();
-
 
         System.out.println("\nOpened ports:");
         openPorts.forEach(port -> System.out.println(port.toString()));
 
         System.out.println("Complete in: " + (System.currentTimeMillis() - startTime - 3000) / 1000 + "s.");
     }
+
 }
 

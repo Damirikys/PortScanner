@@ -1,53 +1,50 @@
 package models;
 
-import prototype.Protocol;
-
 public class Port
 {
     public static final int TCP = 1;
     public static final int UDP = 2;
 
-    private int option;
     private final int VALUE;
-    private Protocol protocol;
+    private int type;
+    private String service;
 
     public Port(int value)
     {
         this.VALUE = value;
-        this.protocol = Protocol.unknown;
-        this.option = TCP;
     }
 
-    public Port setProtocol(Protocol protocol) {
-        this.protocol = protocol;
+    public Port setType(int protocol) {
+        this.type = protocol;
         return this;
     }
 
-    public Port setOption(int type)
+    public int getType()
     {
-        this.option = type;
-        return this;
+        return type;
     }
 
-    public String getOption()
+    public String getTypeName()
     {
-        if (option == 1)
+        if (type == 1)
             return "TCP";
-        else if (option == 2)
+        else if (type == 2)
             return "UDP";
-        else if (option == 3)
-            return  "TCP or UDP";
-
         return "Unknown";
     }
 
-    public Protocol getProtocol() {
-        return protocol;
+    public Port setService(String name) {
+        this.service = name;
+        return this;
+    }
+
+    public String getService() {
+        return service;
     }
 
     @Override
     public String toString()
     {
-        return getOption() + " | " + VALUE + " | Service: " + protocol.name();
+        return getTypeName() + " | " + VALUE + " | Service: " + service;
     }
 }
