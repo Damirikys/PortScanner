@@ -1,3 +1,4 @@
+import implementations.ConsistentPortScanner;
 import implementations.ParallelPortScanner;
 import models.Port;
 
@@ -9,12 +10,12 @@ public class Main
     {
         long startTime = System.currentTimeMillis();
 
-        List<Port> openPorts = new ParallelPortScanner() // new ConsistentPortScanner()
-                .setHost("46.101.165.166")
-                .setOptions(Port.TCP)
-                //.setStartPort(60)
-                //.setFinalPort(400)
-                //.setTimeout(50)
+        List<Port> openPorts = new ConsistentPortScanner() // new ConsistentPortScanner()
+                .setHost("88.147.254.232")
+                .setOptions(Port.UDP)
+                .setStartPort(123)
+                .setFinalPort(123)
+                .setTimeout(5000)
                 .setLogMode(true)
                 .scan();
 
@@ -25,3 +26,4 @@ public class Main
         System.out.println("Complete in: " + (System.currentTimeMillis() - startTime - 3000) / 1000 + "s.");
     }
 }
+

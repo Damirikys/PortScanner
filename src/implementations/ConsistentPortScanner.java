@@ -5,8 +5,10 @@ import models.PortListener;
 import prototype.PortScannerAdapter;
 import prototype.Protocol;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,29 +57,28 @@ public class ConsistentPortScanner extends PortScannerAdapter
 
     protected void checkUDP(int port)
     {
+        byte [] bytes = new byte[2400];
+
         try {
-            DatagramPacket packet = new DatagramPacket(
-                    new byte[128], 10, InetAddress.getByName(host), port);
             DatagramSocket socket = new DatagramSocket();
+            DatagramPacket packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(host), port);
             socket.setSoTimeout(timeout);
             socket.connect(InetAddress.getByName(host), port);
             socket.send(packet);
-            try {
-                socket.receive(packet);
-                String recieved = new String(packet.getData(), 0);
-                System.out.println("Received: " + recieved);
-                if (logMode) System.out.println("UDP | " + port + " is open");
-                openedPorts.add(new Port(port).setOption(UDP));
-            } catch (PortUnreachableException e){
-                if (logMode) System.out.println("UDP | " + port + " is unreachable");
-            } catch (SocketTimeoutException e){
-                if (logMode) System.out.println("UDP | " + port + " is open|filtered");
-            } finally {
-                socket.close();
-            }
+
+            packet = new DatagramPacket(bytes, bytes.length);
+            socket.receive(packet);
+
+            //socket.receive(received);
+            socket.close();
+            if (logMode) System.out.println("UDP | " + port + " is open");
+            openedPorts.add(new Port(port).setOption(UDP));
+        } catch (PortUnreachableException e) {
+            if (logMode) System.out.println("UDP | " + port + " is closed");
+        } catch (SocketTimeoutException e) {
+            if (logMode) System.out.println("UDP | " + port + " is open|filtered");
         } catch (IOException e) {
-            e.printStackTrace();
-            if (logMode) System.out.println("UDP | " + port + " is unreachable");
+            //e.printStackTrace();
         }
     }
 
@@ -98,6 +99,7 @@ public class ConsistentPortScanner extends PortScannerAdapter
     private Protocol determineProtocol(String response)
     {
         response = response.toLowerCase();
+        System.out.println(response);
         for (Protocol protocol: Protocol.values())
             if (response.contains(protocol.name()))
                 return protocol;
