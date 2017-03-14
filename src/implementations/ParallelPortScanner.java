@@ -8,6 +8,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 
 public class ParallelPortScanner extends ConsistentPortScanner
 {
@@ -19,9 +21,17 @@ public class ParallelPortScanner extends ConsistentPortScanner
         for (int i = 0; i < ports.length ; i++)
             ports[i] = startPort + i;
 
-        Arrays.stream(ports)
-                .parallel()
-                .forEach(this::portIdentify);
+        ForkJoinPool forkJoinPool = new ForkJoinPool(20);
+        try {
+            forkJoinPool.submit(() -> {
+                        Arrays.stream(ports)
+                                .parallel()
+                                .unordered()
+                                .forEach(this::portIdentify);
+                    }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
 
         return openedPorts;
     }
