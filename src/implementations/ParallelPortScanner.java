@@ -1,6 +1,7 @@
 package implementations;
 
 import models.Port;
+import prototype.PortScannerAdapter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -13,6 +14,8 @@ import java.util.concurrent.ForkJoinPool;
 
 public class ParallelPortScanner extends ConsistentPortScanner
 {
+    private int threadCount = 20;
+
     @Override public List<Port> scan()
     {
         if (logMode) System.out.println("Process... ");
@@ -21,7 +24,7 @@ public class ParallelPortScanner extends ConsistentPortScanner
         for (int i = 0; i < ports.length ; i++)
             ports[i] = startPort + i;
 
-        ForkJoinPool forkJoinPool = new ForkJoinPool(20);
+        ForkJoinPool forkJoinPool = new ForkJoinPool(threadCount);
         try {
             forkJoinPool.submit(() -> {
                         Arrays.stream(ports)
@@ -34,5 +37,10 @@ public class ParallelPortScanner extends ConsistentPortScanner
         }
 
         return openedPorts;
+    }
+
+    public PortScannerAdapter setThreadCount(int count) {
+        this.threadCount = count;
+        return this;
     }
 }
